@@ -1,0 +1,18 @@
+functions:
+  oscar:
+  - oscar-cluster:
+     name: fish-detector
+     memory: 3Gi
+     cpu: '1.0'
+     image: dialdroid/fish-detector:lite
+     script: jupyterscript2.sh
+     environment:
+       Variables:
+         BUCKET_DIR: "/mnt/fishdetector"
+     mount:
+       storage_provider: minio.default
+       path: /fishdetector
+     log_level: DEBUG
+     input: 
+      - storage_provider: minio.default
+        path: fishdetector/trigger
