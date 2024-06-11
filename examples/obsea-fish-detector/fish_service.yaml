@@ -5,7 +5,7 @@ functions:
      memory: 3Gi
      cpu: '1.0'
      image: dialdroid/fish-detector:lite
-     script: jupyterscript2.sh
+     script: script.sh
      environment:
        Variables:
          BUCKET_DIR: "/mnt/fishdetector"
