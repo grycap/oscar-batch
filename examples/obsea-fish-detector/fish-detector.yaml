@@ -8,11 +8,15 @@ functions:
      script: script.sh
      environment:
        Variables:
-         BUCKET_DIR: "/mnt/fishdetector"
+         BUCKET_DIR: "/mnt/fish-detector"
      mount:
        storage_provider: minio.default
-       path: /fishdetector
+       path: /fish-detector
      log_level: DEBUG
      input: 
       - storage_provider: minio.default
-        path: fishdetector/trigger
+        path: fish-detector/input
+     output: 
+      - storage_provider: minio.default
+        path: fish-detector/output
+     
