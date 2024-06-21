@@ -1,12 +1,10 @@
-# Librerias necesarias
-
 from minio import Minio
 from minio.error import S3Error
 import math
 import requests
 from requests.auth import HTTPBasicAuth
 
-#Definición de funciones necesarias
+# Definition of necessary functions
 
 def get_token(text):
     browser=['token":"','","file_stage_in']
@@ -18,7 +16,7 @@ def get_token(text):
         else:
             break
     if k==-1:
-        print('Error in conection')
+        print('Error in connection')
         return None
     else:
         return text[pos[0]+8:pos[1]]
@@ -33,7 +31,7 @@ def get_cpuService(text):
         else:
             break
     if k==-1:
-        print('Error in conection')
+        print('Error in connection')
         return None
     else:
         return 1000*float(text[pos[0]+6:pos[1]])
@@ -48,34 +46,34 @@ def get_memoryService(text):
         else:
             break
     if k==-1:
-        print('Error in conection')
+        print('Error in connection')
         return None
     else:
         return (float(text[pos[0]+9:pos[1]]))
 
 
-# Configura el cliente MinIO
+# Configure the MinIO client
 client = Minio(
-    "minio.eloquent-chaum4.im.grycap.net",  # servidor MinIO
-    access_key="minio",  
-    secret_key="minio123",  
+    "minio.eloquent-chaum4.im.grycap.net",  # MinIO server
+    access_key="",  
+    secret_key="",  
     secure=True  
 )
 
-# Nombre del bucket
+# Bucket name
 bucket_name = "fishdetector"
 folder_prefix = "input/"
 
-# Nombre del archivo donde se guardarán los nombres de los objetos
+# Name of the file where the object names will be saved
 output_file = "index.txt"
 
 output_path = "input/index.txt"
 
 try:
-    # Lista los objetos en el bucket
+    # List objects in the bucket
     objects = client.list_objects(bucket_name,  prefix=folder_prefix)
     
-    # Contar la cantidad de objetos
+    # Count the number of objects
     object_list = []
     for obj in objects:
          if obj.object_name.endswith('.jpg'):
@@ -85,15 +83,15 @@ try:
     num_imag = len(object_list)
     #print(num_imag) 
 
-    # Abre el archivo en modo escritura
-    #print(f"Nombres de los objetos guardados en {output_file}")
+    # Open the file in write mode
+    #print(f"Names of the objects saved in {output_file}")
     with open(output_file, 'w') as file:
 
         for obj in object_list:
             #print(f"{obj}\n")
             file.write(f"{obj}\n")
 
-    # Subir el archivo de texto al bucket
+    # Upload the text file to the bucket
     client.fput_object(
         bucket_name, 
         output_path,
@@ -101,28 +99,28 @@ try:
         content_type="text/plain"
     )
 
-    print(f"Archivo {output_file} subido a {bucket_name}")
+    print(f"File {output_file} uploaded to {bucket_name}")
 
 except S3Error as exc:
-    print("Error ocurrido: ", exc)
+    print("Error occurred: ", exc)
 
 
-# URL a la que quieres hacer la petición
-url_status = "https://eloquent-chaum4.im.grycap.net/system/status"
+# URL to which you want to make the request
+url_status = ""
 
 
-# Credenciales de autenticación
-username = "oscar"
-password = "oscar123" 
+# Authentication credentials
+username = ""
+password = "" 
 
 cpu_Alloc=0
 memory_Alloc=0
 
-# Hacer la petición GET con autenticación básica
+# Make the GET request with basic authentication
 response = requests.get(url_status, auth=HTTPBasicAuth(username, password))
 
 """
-# Hacer petición GET con autentificación con token
+# Make GET request with token authentication
 token_cluster=''
 headers = {
     'Authorization': "Bearer "+token_cluster
@@ -130,72 +128,71 @@ headers = {
 response = requests.get(url_status, headers=headers)
 """
 
-
-# Comprobar el estado de la respuesta
+# Check the status of the response
 if response.status_code == 200:
       
-    # Convertir la respuesta a JSON
+    # Convert the response to JSON
     try:
         data = response.json()
         print(data)
         
-        # Verificar que la respuesta sea un array de objetos
+        # Verify that the response is an array of objects
         if isinstance(data, list):
             nodos=len(data)
-            # Iterar sobre cada objeto en el array
+            # Iterate over each object in the array
             if nodos > 1:
-                # Iterar sobre cada objeto en el array, excepto el nodo front
+                # Iterate over each object in the array, except the front node
                 for obj in data[1:]:
-                    # Calcular la cpu y memoria disponible (sumatoria de cada nodo)
+                    # Calculate the available CPU and memory (sum of each node)
                     cpu_Alloc+=int(obj['cpuCapacity']) - int(obj['cpuUsage'])
                     memory_Alloc+=int(obj['memoryCapacity']) - int(obj['memoryUsage'])
         else:
-            print("La respuesta no es un array de objetos JSON.")
+            print("The response is not a JSON array of objects.")
     
     except ValueError as e:
-        print("Error al convertir la respuesta a JSON:", e)
+        print("Error converting the response to JSON:", e)
 else:
-    print(f"Error en la petición: {response.status_code}")
-    print("Mensaje de error:")
+    print(f"Request error: {response.status_code}")
+    print("Error message:")
     print(response.text)
-memory_Alloc=memory_Alloc/1000000000  # convertir a GB
+memory_Alloc=memory_Alloc/1000000000  # convert to GB
 
 
-# buscar la cpu necesaria para ejecutar el servicio definida en su creacion (FDL)
+# Search for the CPU needed to run the service defined in its creation (FDL)
 
-url_service = "https://eloquent-chaum4.im.grycap.net/system/services/fish-detector"
+url_service = ""
 
-response = requests.get(urlservice, auth=HTTPBasicAuth(username, password))
+response = requests.get(url_service, auth=HTTPBasicAuth(username, password))
 
 """
-#Petición GET via token
+# GET request via token
 response = requests.get(url_service, headers=headers)
 """
 
 if response.status_code == 200:
     resp=response.text
-    # Calcular CPU, Memoria y token  del servicio
+    # Calculate CPU, Memory and token of the service
     cpu_service= get_cpuService(resp)
     memory_service=get_memoryService(resp)
     token_service=get_token(resp)
 else:
-    print(f"Error en la petición: {response.status_code}")
-    print("Mensaje de error:")
+    print(f"Request error: {response.status_code}")
+    print("Error message:")
     print(response.text)
 
-# Calcular la cantidad de invocaciones al servicio según la cpu disponible en el cluster y la del servicio
+# Calculate the number of service invocations according to the available CPU in the cluster and the service's CPU
 cpu_invoke=math.floor(cpu_Alloc/cpu_service)
 memory_invoke=math.floor(memory_Alloc/(memory_service))
 
-# min valor entre las invocaciones por cpu y por memoria
+# Min value between invocations by CPU and by memory
 cant_invoke=min(cpu_invoke,memory_invoke)
 print(cant_invoke)
 
-# Calcular cantidad de imagenes por invocaciones
+# Calculate the number of images per invocation
 
 resto=(num_imag)%cant_invoke
 img_invoke=int(num_imag/cant_invoke)
-print(f"Imagenes por invocacion: {img_invoke}")
+print(f"Images per invocation: {img_invoke}")
 
 
 headers_invoke = {    
@@ -203,19 +200,19 @@ headers_invoke = {
     'Content-Type': 'application/json',
 }
 
-url_invoke='https://eloquent-chaum4.im.grycap.net/job/fish-detector'
+url_invoke=''
 
-# Rango de imagenes a procesar (inicio-fin)
+# Range of images to process (start-end)
 for i in range(cant_invoke):
-    #Rango de imágenes
-    inicio=i*img_invoke+1
-    fin=(i+1)*img_invoke
+    # Range of images
+    start=i*img_invoke+1
+    end=(i+1)*img_invoke
 
     if i==cant_invoke-1:
         fin=fin+resto
     data={
-            "start": inicio,
-           "end": fin
+            "start": start,
+           "end": end
             }
     try:
         response = requests.post(url_invoke, headers=headers_invoke, json=data)
@@ -226,6 +223,6 @@ for i in range(cant_invoke):
     except Exception as ex:
         print("Error running service: ", ex)
         print(response.text)
-    print(f"Valor_Inicio: {inicio}")
-    print(f"Valor_Fin: {fin}")
-    print(f"Invocacion {i+1} al servicio")
+    print(f"Start value: {start}")
+    print(f"End value: {end}")
+    print(f"Invocation {i+1} to the service")
