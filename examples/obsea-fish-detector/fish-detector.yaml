@@ -1,0 +1,22 @@
+functions:
+  oscar:
+  - oscar-cluster:
+     name: fish-detector
+     memory: 3Gi
+     cpu: '1.0'
+     image: dialdroid/fish-detector:lite
+     script: script.sh
+     environment:
+       Variables:
+         BUCKET_DIR: "/mnt/fish-detector"
+     mount:
+       storage_provider: minio.default
+       path: /fish-detector
+     log_level: DEBUG
+     input: 
+      - storage_provider: minio.default
+        path: fish-detector/input
+     output: 
+      - storage_provider: minio.default
+        path: fish-detector/output
+     
