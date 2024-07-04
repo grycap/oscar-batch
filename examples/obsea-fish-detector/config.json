@@ -1,0 +1,27 @@
+{
+    "MinIO": {
+        "url": "minio.crazy-kowalevski5.im.grycap.net",
+        "access_key": "minio",
+        "secret_key": "minio-ai4eosc-uEQqQ"
+    },
+    "bucket": {
+        "name": "fish-detector",
+        "folder_prefix": "input/"
+    },
+    "output": {
+        "file": "index.txt"
+    },
+    "oscar_cluster": {
+        "url": "inference.cloud.ai4eosc.eu",
+        "auth_basic": {
+            "username": "oscar",
+            "password": "oscar-ai4eosc-dzFcy"
+        },
+        "auth_token": {
+            "token": "1234fd"
+        }
+    },
+    "service": {
+        "name": "fish-detector"
+    }
+}
