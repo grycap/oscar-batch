@@ -5,7 +5,7 @@ config_data = {
     "MinIO": {
         "url": "minio.crazy-kowalevski5.im.grycap.net",
         "access_key": "minio",
-        "secret_key": "minio-ai4eosc-uEQqQ"
+        "secret_key": ""
     },
     "bucket": {
         "name": "fish-detector",
@@ -18,10 +18,10 @@ config_data = {
         "url": "inference.cloud.ai4eosc.eu",
         "auth_basic": {
             "username": "oscar",
-            "password": "oscar-ai4eosc-dzFcy"
+            "password": ""
         },
         "auth_token": {
-            "token": "1234fd"
+            "token": ""
         }
     },
     "service": {
