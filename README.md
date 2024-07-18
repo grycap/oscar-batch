@@ -12,7 +12,7 @@ In the image above, the OSCAR-Bach architecture is represented.
 
 As a first step (1), the user needs to update the files to analyze to a bucket in a MinIO object storage service. This can be the default internal MinIO system that is available in every OSCAR cluster. Once the files are properly stored and accessible in the cluster, the analysis can be launched (2), taking into account that, previously, an OSCAR service with the application to analyze the files should be created. More details on how to create an OSCAR service can be read in the [official documentation](https://docs.oscar.grycap.net/oscar-service/).
 
-In the second phase, the coordinator takes the main role. It will compute the proper values for the number of parallel invocations to the service that the cluster can handle (taking into account the current values of free CPU and RAM memory in the cluster, and the CPU and RAM requirements of the service, all these metrics obtained via the [OSCAR API](https://docs.oscar.grycap.net/api/) (4)), and the amount of files each invocation can process to cover the complete analysis of the files contained in the bucket (5). For this last value, the coordinator lists the content of the MinIO bucket (3a) and saves it in a file in the same bucket (3b). The last step covered by the coordinator is the invocation of the service (6a).
+In the second phase, the [coordinator](https://github.com/grycap/oscar-batch/blob/main/coordinator.py) takes the main role. It will compute the proper values for the number of parallel invocations to the service that the cluster can handle (taking into account the current values of free CPU and RAM memory in the cluster, and the CPU and RAM requirements of the service, all these metrics obtained via the [OSCAR API](https://docs.oscar.grycap.net/api/) (4)), and the amount of files each invocation can process to cover the complete analysis of the files contained in the bucket (5). For this last value, the coordinator lists the content of the MinIO bucket (3a) and saves it in a file in the same bucket (3b). The last step covered by the coordinator is the invocation of the service (6a).
 
 The third phase is managed by OSCAR Manager, which will trigger the actual execution of the services inside the cluster (6b) (as depicted in the figure, OSCAR runs on top of a Kubernetes cluster). In order to avoid copying the content of the MinIO bucket (which can be huge, as this OSCAR-Batch tool is intended for large amounts of files), OSCAR uses a strategy based on sidecar containers (6c), where the content of the MinIO bucket is mounted as a volume and accessible for the instance of the service (a K8s pod).
 
@@ -20,6 +20,8 @@ Finally, the last phase is the execution of the service itself, which will commo
 
 ## Configuration file
 The OSCAR-Batch coordinator can be easily configured by providing a JSON file like the [config.json](https://github.com/grycap/oscar-batch/blob/main/config.json). It collects the info regarding the MinIO object storage system (including endpoint, access credentials, bucket name and folder), the OSCAR cluster (involving also the endpoint and the access credentials), and the name of the service to be executed.
+
+Notice that the repo provides a small script to generate the config file programatically. See [gen-config-file.py](https://github.com/grycap/oscar-batch/blob/main/gen-config-file.py).
 
 For more documentation regarding OSCAR, visit https://grycap.github.io/oscar/. For more details on how the coordinator works, you can refer to the code provided in this repo.
 
