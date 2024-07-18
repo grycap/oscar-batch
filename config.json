@@ -1,18 +1,18 @@
 {
     "MinIO": {
-        "url": "minio.crazy-kowalevski5.im.grycap.net",
+        "url": "minio.crazy-domain.endpoint.eu",
         "access_key": "minio",
         "secret_key": ""
     },
     "bucket": {
-        "name": "fish-detector",
+        "name": "test-bucket",
         "folder_prefix": "input/"
     },
     "output": {
         "file": "index.txt"
     },
     "oscar_cluster": {
-        "url": "inference.cloud.ai4eosc.eu",
+        "url": "oscar.instance.endpoint.eu",
         "auth_basic": {
             "username": "oscar",
             "password": ""
@@ -22,6 +22,6 @@
         }
     },
     "service": {
-        "name": "fish-detector"
+        "name": "test-service"
     }
 }
