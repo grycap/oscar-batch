@@ -1,12 +1,11 @@
 functions:
   oscar:
-  - oscar-other:
+  - oscar-cluster:
      name: fish-detector
      memory: 3Gi
      cpu: '1.0'
      image: dialdroid/fish-detector:lite
      script: script.sh
-     allowed_users: []
      environment:
        Variables:
          BUCKET_DIR: "/mnt/fish-detector"

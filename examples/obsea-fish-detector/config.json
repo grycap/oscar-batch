@@ -1,27 +1,27 @@
 {
     "MinIO": {
-        "url": "minio.condescending-albattani4.im.grycap.net",
+        "url": "minio.crazy-kowalevski5.im.grycap.net",
         "access_key": "minio",
-        "secret_key": "minio123"
+        "secret_key": ""
     },
     "bucket": {
-        "name": "grayifyr0",
-        "folder_prefix": "in/"
+        "name": "fish-detector",
+        "folder_prefix": "input/"
     },
     "output": {
         "file": "index.txt"
     },
     "oscar_cluster": {
-        "url": "frosty-easley9.im.grycap.net",
+        "url": "inference.cloud.ai4eosc.eu",
         "auth_basic": {
             "username": "oscar",
-            "password": "oscar123"
+            "password": ""
         },
         "auth_token": {
             "token": ""
         }
     },
     "service": {
-        "name": "grayify"
+        "name": "fish-detector"
     }
 }
