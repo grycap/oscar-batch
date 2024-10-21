@@ -13,10 +13,4 @@ functions:
        storage_provider: minio.default
        path: /fish-detector
      log_level: DEBUG
-     input: 
-      - storage_provider: minio.default
-        path: fish-detector/input
-     output: 
-      - storage_provider: minio.default
-        path: fish-detector/output
      
