@@ -15,7 +15,7 @@ oscar-cli apply fish-detector.yaml
 To use the service, run the following Python script:
 
 ```python
-coordinator.py
+remote_coordinator.py
 ```
 
 By following these steps, you can perform inference on large collections of images effectively.

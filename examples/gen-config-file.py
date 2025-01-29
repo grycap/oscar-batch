@@ -1,10 +1,9 @@
 import json
 
-# Define the configuration data
 config_data = {
     "MinIO": {
-        "url": "minio.crazy-kowalevski5.im.grycap.net",
-        "access_key": "minio",
+        "url": "minio.gracious-varahamihira6.im.grycap.net",
+        "access_key": "",
         "secret_key": ""
     },
     "bucket": {
@@ -14,23 +13,25 @@ config_data = {
     "output": {
         "file": "index.txt"
     },
+    "local": {
+        "folder": "Imag"
+    },
     "oscar_cluster": {
-        "url": "inference.cloud.ai4eosc.eu",
+        "url": "inference-walton.cloud.imagine-ai.eu",
         "auth_basic": {
-            "username": "oscar",
+            "username": "",
             "password": ""
         },
-        "auth_token": {
-            "token": ""
+        "auth_token": { 
+            "token":""
         }
     },
     "service": {
-        "name": "fish-detector"
+        "name": "fish-detector-test"
     }
 }
 
-# Create the Configuration File.
-with open('config.json', 'w') as config_file:
+with open('config-walton-direct.json', 'w') as config_file:
     json.dump(config_data, config_file, indent=4)
 
 print("Configuration file 'config.json' created.")

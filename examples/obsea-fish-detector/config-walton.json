@@ -1,7 +1,7 @@
 {
     "MinIO": {
-        "url": "minio.crazy-kowalevski5.im.grycap.net",
-        "access_key": "minio",
+        "url": "minio.gracious-varahamihira6.im.grycap.net",
+        "access_key": "",
         "secret_key": ""
     },
     "bucket": {
@@ -11,17 +11,19 @@
     "output": {
         "file": "index.txt"
     },
+    "local": {
+        "folder": "fish"
+    },
     "oscar_cluster": {
-        "url": "inference.cloud.ai4eosc.eu",
+        "url": "inference-walton.cloud.imagine-ai.eu",
         "auth_basic": {
-            "username": "oscar",
+            "username": "",
             "password": ""
         },
         "auth_token": {
-            "token": ""
-        }
+            "token": ""}
     },
     "service": {
-        "name": "fish-detector"
+        "name": "fish-detector-zip-3"
     }
 }
