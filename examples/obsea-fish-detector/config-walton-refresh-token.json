@@ -1,6 +1,6 @@
 {
     "MinIO": {
-        "url": "minio.gracious-varahamihira6.im.grycap.net",
+        "url": "",
         "access_key": "",
         "secret_key": ""
     },
@@ -21,9 +21,9 @@
             "password": ""
         },
         "auth_token": {
-            "token": ""}
+            "refresh_token": ""}
     },
     "service": {
-        "name": "fish-detector-zip-3"
+        "name": ""
     }
 }

@@ -8,6 +8,11 @@ import zipfile
 import time
 import os
 
+import jwt
+import datetime
+import pytz
+from datetime import datetime
+
 def get_token(text):
     browser=['token":"','","file_stage_in']
     pos=[]
@@ -75,7 +80,7 @@ def use_service(config):
     return service_name
 
 def connect_to_oscar_cluster(config):
-    token_cluster=''
+    refresh_token=''
     oscar_cluster= config['url']
     if 'username' in config_data.get('oscar_cluster', {}).get('auth_basic', {}):
         username = config['auth_basic']['username']
@@ -84,12 +89,12 @@ def connect_to_oscar_cluster(config):
     if username !="" and password != "":
         basic= True 
     else:
-        if 'token' in config_data.get('oscar_cluster', {}).get('auth_token', {}):
-            token_cluster = config['auth_token']['token']
-            if token_cluster !='':
+        if 'refresh_token' in config_data.get('oscar_cluster', {}).get('auth_token', {}):
+            refresh_token = config['auth_token']['refresh_token']
+            if refresh_token !='':
                 basic=False
              
-    return oscar_cluster,username,password,token_cluster,basic
+    return oscar_cluster,username,password,refresh_token,basic
 def use_directory(config):
     directory=config['local'].get('folder')
     return directory
@@ -110,15 +115,73 @@ def list_directory(directory_path, output_file):
         print(f"Error: {e}")
     return len(images), images
 
-with open('config-walton-direct.json', 'r') as config_file:
-    config_data = json.load(config_file)
+def new_token(url,refresh_token):
+    
+    data = {
+    'grant_type': 'refresh_token',
+    'refresh_token':refresh_token,
+    'client_id': 'token-portal',
+    'scope': 'openid email profile voperson_id eduperson_entitlement'
+}
 
+
+    response = requests.post(url, data=data)
+
+
+    if response.status_code == 200:
+    
+        err=response.status_code
+        response_data = response.json()
+   
+    
+        access_token = response_data.get('access_token')
+        expires_in = response_data.get('expires_in')
+
+    else:
+        print(f"Error: {response.status_code}, {response.text}")
+        err=response.status_code
+
+    return access_token, err
+def expire_token(token):
+    try:
+        decoded_token = jwt.decode(token, options={"verify_signature": False}, algorithms=["HS256"])
+        
+
+        exp_timestamp = decoded_token.get('exp')
+
+        if exp_timestamp:
+        
+            exp_datetime = datetime.utcfromtimestamp(exp_timestamp)
+            timezone_spain = pytz.timezone('Europe/Madrid')
+
+            exp_datetime_spain = exp_datetime.replace(tzinfo=pytz.utc).astimezone(timezone_spain)
+
+            current_time = datetime.utcnow()
+            current = current_time.replace(tzinfo=pytz.utc).astimezone(timezone_spain)
+            k=exp_datetime_spain - current
+
+            if k.total_seconds()/60 <0:
+                print("Token has expired")
+            
+        else:
+            print("The token has no expiration date")
+
+    except jwt.ExpiredSignatureError:
+        print("The token has already expired.")
+    except jwt.InvalidTokenError:
+        print("Invalid token.")
+    return exp_datetime_spain, k    
+
+
+with open('config-walton-refresh-token.json', 'r') as config_file:
+    config_data = json.load(config_file)
 
 MinIO_url,MinIO_access_key,MinIO_secret_key = connect_to_minio(config_data['MinIO'])
 bucket_name, folder_prefix = use_bucket(config_data['bucket'])
 output_file=setup_output(config_data['output'])
 service_name=use_service(config_data['service'])
-oscar_cluster, username, password,token_cluster, basic = connect_to_oscar_cluster(config_data['oscar_cluster'])
+oscar_cluster, username, password,refresh_token, basic = connect_to_oscar_cluster(config_data['oscar_cluster'])
+
 
 directory_path = use_directory(config_data)
 output_txt = directory_path+"/index.txt"          
@@ -126,6 +189,10 @@ num_imag,object_list=list_directory(directory_path, output_txt)
 
 service_info = "https://" + oscar_cluster + "/system/services/" + service_name
 print(service_info)
+
+url = 'https://aai.egi.eu/auth/realms/egi/protocol/openid-connect/token'
+token_cluster,err=new_token(url,refresh_token)
+
  
 if basic:
     response = requests.get(service_info, auth=HTTPBasicAuth(username, password),verify=True)
@@ -147,6 +214,7 @@ else:
     print(f"Request error: {response.status_code}")
     print("Error message:")
     print(response.text)
+
 cpu_Alloc=0
 cpu_invoke=0
 memory_Alloc=0
@@ -169,9 +237,11 @@ try:
     if response.status_code == 200:
         try:
             data = response.json()
+
             if isinstance(data, dict):
                 nodos = len(data['detail'])
                 data = data['detail']
+                
                 if nodos >= 1:
                     for obj in data:
                         cpu_Alloc=(int(obj['cpuCapacity']))*0.8 - int(obj['cpuUsage'])
@@ -194,22 +264,18 @@ except requests.exceptions.RequestException as e:
 print(f"CPU invocations: {cpu_invoke}")
 print(f"Memory invocations: {memory_invoke}")
 
-
 if not oscar_cluster.startswith("https://"):
     service_info = "https://" + oscar_cluster + "/system/services/" + service_name
 else:
     service_info = oscar_cluster + "/system/services/" + service_name
     
-
 if basic:
     response = requests.get(service_info, auth=HTTPBasicAuth(username, password),verify=True)
 else:
     response = requests.get(service_info, headers=headers,verify=True)
 
-
 if response.status_code == 200:
     resp = response.text
-
     cpu_service = get_cpuService(resp)
     memory_service = get_memoryService(resp)  # take 80% of the memory so as not to completely saturate the cluster
     token_service = get_token(resp)
@@ -221,7 +287,7 @@ else:
 cant_invoke = min(cpu_invoke, memory_invoke)
 print(f"Invocations: {cant_invoke}")
 
-#num_imag=108
+num_imag=36
 resto = (num_imag) % cant_invoke
 img_invoke = int(num_imag / cant_invoke)
 print(f"Images per invocation: {img_invoke}")
@@ -240,14 +306,12 @@ else:
     }
 
     
-
 client = Minio(
-    MinIO_url,
+    MinIO_url,  # MinIO server
     access_key=MinIO_access_key,  
     secret_key=MinIO_secret_key,  
     secure=True  
     )
-
 if not oscar_cluster.startswith("https://"):
     url_invoke = "https://" + oscar_cluster + "/job/" + service_name
 else:
@@ -255,7 +319,6 @@ else:
 
 end=0
 start=0
-
 t1=time.time()
 for i in range(cant_invoke):
     
@@ -271,7 +334,7 @@ for i in range(cant_invoke):
         
     }
     print(data)
-
+    
     list=object_list[int(start)-1:int(end)]
     zip_file_name = str(i+1)+".zip"
     output_path = "zip/" + name_zip
@@ -281,15 +344,13 @@ for i in range(cant_invoke):
     try:
        
         with zipfile.ZipFile(zip_file_name, 'w') as file_zip:
-
             for file in list:
-
                 if file.lower().endswith('.jpg'):
                     full_path = os.path.join(directory_path, file)
                     
-
                     file_zip.write(full_path, file)
                     
+        
         print(f"ZIP file successfully created: {zip_file_name}")
 
         client.fput_object(
@@ -297,8 +358,9 @@ for i in range(cant_invoke):
             output_path,
             zip_file_name
           )
-
+   # client.fput_object(output_bucket, zip_file_name, zip_file_name)
         print(f"{name_zip} successfully uploaded to the bucket {output_bucket}")
+    
     finally:
       
         for file in local_files:
@@ -316,7 +378,24 @@ for i in range(cant_invoke):
    
     output_path = folder_prefix + output_file
     
+    expired,e =expire_token(token_cluster)
+    
+    if int(e.total_seconds()/60) < 5: #  to generate new_token for 5 min to expired
+        token_cluster,err=new_token(url,refresh_token)
+        print(token_cluster)
+        if basic:
+            headers = {    
+                  'Authorization': "Bearer " + token_service,
+                  'Content-Type': 'application/json',
+            }
+        else:
+            headers = {
+            'Authorization': "Bearer " + token_cluster,
+            'Content-Type': 'application/json',
+           }
    
+    
+  
     try:
         response = requests.post(url_invoke, headers=headers, json=data,verify=True)
         if response.status_code == 200 or response.status_code == 201:
@@ -326,7 +405,7 @@ for i in range(cant_invoke):
     except Exception as ex:
         print("Error running service: ", ex)
         print(response.text)
-
+    
     t2=time.time()
     print(f"Total time of service launch: {round(t2-t1,2)} seconds")
     
@@ -334,5 +413,3 @@ t=time.time()
 print(f"Total time of the execution process: {round(t-t1,2)} seconds")    
 
    
-
-

@@ -8,6 +8,11 @@ import zipfile
 import time
 import os
 
+import jwt
+import datetime
+import pytz
+from datetime import datetime
+
 def get_token(text):
     browser=['token":"','","file_stage_in']
     pos=[]
@@ -75,7 +80,7 @@ def use_service(config):
     return service_name
 
 def connect_to_oscar_cluster(config):
-    token_cluster=''
+    refresh_token=''
     oscar_cluster= config['url']
     if 'username' in config_data.get('oscar_cluster', {}).get('auth_basic', {}):
         username = config['auth_basic']['username']
@@ -84,20 +89,77 @@ def connect_to_oscar_cluster(config):
     if username !="" and password != "":
         basic= True 
     else:
-        if 'token' in config_data.get('oscar_cluster', {}).get('auth_token', {}):
-            token_cluster = config['auth_token']['token']
-            if token_cluster !='':
+        if 'refresh_token' in config_data.get('oscar_cluster', {}).get('auth_token', {}):
+            refresh_token = config['auth_token']['refresh_token']
+            if refresh_token !='':
                 basic=False
              
-    return oscar_cluster,username,password,token_cluster,basic
+    return oscar_cluster,username,password,refresh_token,basic
+def new_token(url,refresh_token):
+    
+    data = {
+    'grant_type': 'refresh_token',
+    'refresh_token':refresh_token,
+    'client_id': 'token-portal',
+    'scope': 'openid email profile voperson_id eduperson_entitlement'
+}
 
-with open('config-walton-direct.json', 'r') as config_file:
+
+    response = requests.post(url, data=data)
+
+
+    if response.status_code == 200:
+    
+        err=response.status_code
+        response_data = response.json()
+   
+    
+        access_token = response_data.get('access_token')
+        expires_in = response_data.get('expires_in')
+
+    else:
+        print(f"Error: {response.status_code}, {response.text}")
+        err=response.status_code
+
+    return access_token, err
+def expire_token(token):
+    try:
+        decoded_token = jwt.decode(token, options={"verify_signature": False}, algorithms=["HS256"])
+        
+
+        exp_timestamp = decoded_token.get('exp')
+
+        if exp_timestamp:
+        
+            exp_datetime = datetime.utcfromtimestamp(exp_timestamp)
+            timezone_spain = pytz.timezone('Europe/Madrid')
+
+            exp_datetime_spain = exp_datetime.replace(tzinfo=pytz.utc).astimezone(timezone_spain)
+
+            current_time = datetime.utcnow()
+            current = current_time.replace(tzinfo=pytz.utc).astimezone(timezone_spain)
+            k=exp_datetime_spain - current
+
+            if k.total_seconds()/60 <0:
+                print("Token has expired")
+            
+        else:
+            print("The token has no expiration date")
+
+    except jwt.ExpiredSignatureError:
+        print("The token has already expired.")
+    except jwt.InvalidTokenError:
+        print("Invalid token.")
+    return exp_datetime_spain, k    
+with open('config-walton-refresh-token.json', 'r') as config_file:
     config_data = json.load(config_file)
+
 MinIO_url,MinIO_access_key,MinIO_secret_key = connect_to_minio(config_data['MinIO'])
 bucket_name, folder_prefix = use_bucket(config_data['bucket'])
 output_file=setup_output(config_data['output'])
 service_name=use_service(config_data['service'])
-oscar_cluster, username, password,token_cluster, basic = connect_to_oscar_cluster(config_data['oscar_cluster'])
+oscar_cluster, username, password,refresh_token, basic = connect_to_oscar_cluster(config_data['oscar_cluster'])
+
 client = Minio(
     MinIO_url,  # MinIO server
     access_key=MinIO_access_key,  
@@ -109,9 +171,11 @@ output_path = folder_prefix + output_file
 
 try:
     objects = client.list_objects(bucket_name,  prefix=folder_prefix)
+   
     object_list = []
     for obj in objects:
          if obj.object_name.endswith('.jpg'):
+            #print(obj.object_name)
             object_list.append(obj.object_name)
 
     num_imag = len(object_list)
@@ -119,6 +183,7 @@ try:
         for obj in object_list:
             #print(f"{obj}\n")
             file.write(f"{obj}\n")
+
     client.fput_object(
         bucket_name, 
         output_path,
@@ -129,11 +194,14 @@ try:
     print(f"File {output_file} uploaded to {bucket_name}")
 except S3Error as exc:
     print("Error occurred: ", exc)
-print(f"Total images to proccess: {num_imag}")
+print(f"Total images to proccess: {num_imag}")ç
 
 service_info = "https://" + oscar_cluster + "/system/services/" + service_name
 print(service_info)
- 
+url = 'https://aai.egi.eu/auth/realms/egi/protocol/openid-connect/token'
+token_cluster,err=new_token(url,refresh_token)
+
+    
 if basic:
     response = requests.get(service_info, auth=HTTPBasicAuth(username, password),verify=True)
 else:
@@ -141,6 +209,7 @@ else:
     'Authorization': "Bearer " + token_cluster
     }
     response = requests.get(service_info, headers=headers,verify=True)
+ 
 if response.status_code == 200:
     resp = response.text
     print(resp)
@@ -153,12 +222,10 @@ else:
     print(f"Request error: {response.status_code}")
     print("Error message:")
     print(response.text)
-
 cpu_Alloc=0
 cpu_invoke=0
 memory_Alloc=0
 memory_invoke=0
-
 if not oscar_cluster.startswith("https://"):
     url_status = "https://" + oscar_cluster + "/system/status"
 else:
@@ -180,7 +247,6 @@ try:
             if isinstance(data, dict):
                 nodos = len(data['detail'])
                 data = data['detail']
-
                 if nodos >= 1:
                     for obj in data:
                         cpu_Alloc=(int(obj['cpuCapacity']))*0.8 - int(obj['cpuUsage'])
@@ -207,7 +273,7 @@ if not oscar_cluster.startswith("https://"):
     service_info = "https://" + oscar_cluster + "/system/services/" + service_name
 else:
     service_info = oscar_cluster + "/system/services/" + service_name
-
+    
 if basic:
     response = requests.get(service_info, auth=HTTPBasicAuth(username, password),verify=True)
 else:
@@ -216,7 +282,7 @@ else:
 if response.status_code == 200:
     resp = response.text
     cpu_service = get_cpuService(resp)
-    memory_service = get_memoryService(resp) 
+    memory_service = get_memoryService(resp)  
     token_service = get_token(resp)
 else:
     print(f"Request error: {response.status_code}")
@@ -243,7 +309,7 @@ else:
     'Authorization': "Bearer " + token_cluster,
     'Content-Type': 'application/json',
     }
-
+    
 if not oscar_cluster.startswith("https://"):
     url_invoke = "https://" + oscar_cluster + "/job/" + service_name
 else:
@@ -251,9 +317,11 @@ else:
 
 end=0
 start=0
+
 t1=time.time()
 for i in range(cant_invoke):
     t=time.time()
+
     start = end+1
     end = end+ img_invoke
     if i < resto:
@@ -264,7 +332,7 @@ for i in range(cant_invoke):
         "zip": name_zip
         
     }
-
+    
     list=object_list[int(start)-1:int(end)]
     zip_file_name = str(start)+".zip"
     output_path = "zip/" + name_zip
@@ -282,7 +350,7 @@ for i in range(cant_invoke):
         
         t21=time.time()
         print(f"Download images from the bucket {round(t21-t2,2)}") 
-
+     
         with zipfile.ZipFile(zip_file_name, "w") as zipf:
             for file in local_files:
                 zipf.write(file, arcname=os.path.basename(file))
@@ -297,10 +365,11 @@ for i in range(cant_invoke):
         t4=time.time()
         print(f" Upload to bucket {round(t4-t3,2)} seconds")    
     
+   # client.fput_object(output_bucket, zip_file_name, zip_file_name)
         print(f"{name_zip} successfully uploaded to the bucket {output_bucket}")
     
     finally:
-
+      
         for file in local_files:
             if os.path.exists(file):
                 os.remove(file)
@@ -311,6 +380,24 @@ for i in range(cant_invoke):
     print(f"End value: {end}")
     print(f"Invocation {i + 1} to the service")
     print(url_invoke)
+    
+    expired,e =expire_token(token_cluster)
+    
+    if int(e.total_seconds()/60) < 5: 
+        token_cluster,err=new_token(url,refresh_token)
+        print(token_cluster)
+        if basic:
+            headers = {    
+                  'Authorization': "Bearer " + token_service,
+                  'Content-Type': 'application/json',
+            }
+        else:
+            headers = {
+            'Authorization': "Bearer " + token_cluster,
+            'Content-Type': 'application/json',
+           }
+    
+    
     
     try:
         response = requests.post(url_invoke, headers=headers, json=data,verify=True)
@@ -326,7 +413,7 @@ for i in range(cant_invoke):
     
     t1=time.time()
     print(f"Total time of service launch: {round(t1-t,2)} seconds")
-
+    
     time.sleep(5)
     
 t=time.time()
