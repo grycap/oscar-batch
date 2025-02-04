@@ -292,7 +292,6 @@ else:
 cant_invoke = min(cpu_invoke, memory_invoke)
 print(f"Invocations: {cant_invoke}")
 
-num_imag=36
 resto = (num_imag) % cant_invoke
 img_invoke = int(num_imag / cant_invoke)
 print(f"Images per invocation: {img_invoke}")
