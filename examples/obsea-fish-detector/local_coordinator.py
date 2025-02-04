@@ -204,11 +204,8 @@ else:
  
 if response.status_code == 200:
     resp = response.text
-    print(resp)
     cpu_service = get_cpuService(resp)
     memory_service = get_memoryService(resp)
-    print(cpu_service)
-    print(memory_service)
     token_service = get_token(resp)
 else:
     print(f"Request error: {response.status_code}")
@@ -306,7 +303,7 @@ else:
 
     
 client = Minio(
-    MinIO_url,  # MinIO server
+    MinIO_url,  
     access_key=MinIO_access_key,  
     secret_key=MinIO_secret_key,  
     secure=True  
@@ -371,7 +368,6 @@ for i in range(cant_invoke):
     print(f"Start value: {start}")
     print(f"End value: {end}")
     print(f"Invocation {i + 1} to the service")
-    print(url_invoke)
     
     time.sleep(5)
    
@@ -381,7 +377,6 @@ for i in range(cant_invoke):
     
     if int(e.total_seconds()/60) < 5: #  to generate new_token for 5 min to expired
         token_cluster,err=new_token(url,refresh_token)
-        print(token_cluster)
         if basic:
             headers = {    
                   'Authorization': "Bearer " + token_service,
