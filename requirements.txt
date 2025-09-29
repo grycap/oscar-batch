@@ -1,0 +1,14 @@
+argon2-cffi==23.1.0
+argon2-cffi-bindings==21.2.0
+certifi==2025.1.31
+cffi==1.17.1
+charset-normalizer==3.4.1
+idna==3.10
+minio==7.2.15
+pycparser==2.22
+pycryptodome==3.22.0
+PyJWT==2.10.1
+pytz==2025.2
+requests==2.32.3
+typing_extensions==4.13.0
+urllib3==2.3.0
